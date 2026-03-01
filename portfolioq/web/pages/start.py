@@ -1,6 +1,3 @@
-"""
-streamlit run portfolioq-web/Start.py"""
-
 import streamlit as st
 
 st.title('Portfolio Quote')

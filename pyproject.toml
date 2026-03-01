@@ -1,19 +1,18 @@
-[build-system]
-requires = ["setuptools >= 77.0.3"]
-build-backend = "setuptools.build_meta"
-
 [project]
-dynamic = ["version"]
-name = "portfolioq"
-version = "0.1"
-requires-python = ">= 3.11"
-readme="README.md"
+name = "portfolio-quote"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
 dependencies = [
-	"streamlit",
-	"pandas",
-	"numpy",
-	"plotly"
+    "numpy>=2.4.2",
+    "pandas>=2.3.3",
+    "plotly>=6.5.2",
+    "pydantic>=2.12.5",
+    "streamlit>=1.54.0",
 ]
 
-[project.scripts]
-portfolio-quote = "portfolioq:main"
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
