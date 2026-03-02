@@ -1,11 +1,11 @@
 from abc import ABCMeta, abstractmethod
-from .connector import Connector
+from .connector import get_connector
 from .models import Dividend, Trade
 
 
 class Table(metaclass=ABCMeta):
     def __init__(self):
-        self.conn = Connector()
+        self.conn = get_connector()
         self.create()
 
     def close(self):
@@ -17,10 +17,10 @@ class Table(metaclass=ABCMeta):
 
     @abstractmethod
     def all(self):
-        return None
+        return []
 
     @abstractmethod
-    def insert(self, values: list[dict]):
+    def insert(self, values):
         pass
 
 

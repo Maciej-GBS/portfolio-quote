@@ -6,6 +6,7 @@ class Connector:
     This simple Connector wraps sqlite3 with context management
     for transaction handling.
     """
+    INSTANCE = None
     DB_PATH = Path("sample_data", "data.db")
 
     def __init__(self):
@@ -36,3 +37,10 @@ class Connector:
         self.cursor = None
         self.conn.close()
         self.conn = None
+
+def get_connector() -> Connector:
+    if Connector.INSTANCE:
+        return Connector.INSTANCE
+    conn = Connector()
+    Connector.INSTANCE = conn
+    return conn
