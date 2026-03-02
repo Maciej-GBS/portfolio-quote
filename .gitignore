@@ -2,4 +2,5 @@ __pycache__
 *.py[oc]
 sample_data
 .venv
+.pytest_cache
 uv.lock

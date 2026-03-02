@@ -1,4 +1,5 @@
 PACKAGE_ROOT := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/portfolioq
+export PACKAGE_ROOT
 
 all: test run
 
