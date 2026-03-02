@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from .connector import Connector
+from .models import Dividend, Trade
 
 
 class Table(metaclass=ABCMeta):
@@ -40,14 +41,15 @@ class DividendsTable(Table):
                 currency VARCHAR NOT NULL
             )""")
 
-    def all(self):
+    def all(self) -> list[Dividend]:
         cursor = self.conn.get_cursor()
         cursor.execute(f"SELECT * FROM {self.NAME}")
-        return cursor.fetchall()
+        return [Dividend(**kw) for kw in cursor.fetchall()]
 
-    def insert(self, values: list[dict]):
+    def insert(self, values: list[Dividend]):
         if len(values) < 1:
             return
+        values = [obj.model_dump() for obj in values]
         s_keys = [str(k) for k in values[0].keys()]
         columns = ",".join(s_keys)
         value_keys = ",".join(f":{k}" for k in s_keys)
@@ -77,14 +79,15 @@ class TradeTable(Table):
                 currency VARCHAR NOT NULL
             )""")
 
-    def all(self):
+    def all(self) -> list[Trade]:
         cursor = self.conn.get_cursor()
         cursor.execute(f"SELECT * FROM {self.NAME}")
-        return cursor.fetchall()
+        return [Trade(**kw) for kw in cursor.fetchall()]
 
-    def insert(self, values: list[dict]):
+    def insert(self, values: list[Trade]):
         if len(values) < 1:
             return
+        values = [obj.model_dump() for obj in values]
         s_keys = [str(k) for k in values[0].keys()]
         columns = ",".join(s_keys)
         value_keys = ",".join(f":{k}" for k in s_keys)
