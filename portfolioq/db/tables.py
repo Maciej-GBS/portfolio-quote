@@ -38,6 +38,7 @@ class DividendsTable(Table):
                 ticker TEXT NOT NULL,
                 payoutDate DATE NOT NULL,
                 amount REAL NOT NULL,
+                marketValue REAL NOT NULL,
                 currency VARCHAR NOT NULL
             )""")
 
