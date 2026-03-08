@@ -3,6 +3,6 @@ import os
 import sys
 sys.path.append(os.environ.get("PACKAGE_ROOT", os.getcwd()))
 
-from web import main
+from portfolioq.web import main
 
 main()

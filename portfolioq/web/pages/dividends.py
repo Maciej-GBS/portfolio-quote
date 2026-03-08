@@ -1,8 +1,8 @@
 import plotly.graph_objects as go
 import streamlit as st
 from datetime import datetime, timedelta
-from db import Dividend
-from web.context import get_dividends_table
+from portfolioq.db import Dividend
+from portfolioq.web.context import get_dividends_table
 
 
 @st.cache_data

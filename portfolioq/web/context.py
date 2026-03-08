@@ -1,5 +1,5 @@
 import streamlit as st
-from db import DividendsTable, TradeTable
+from portfolioq.db import DividendsTable, TradeTable
 
 @st.cache_resource
 def get_dividends_table() -> DividendsTable:
