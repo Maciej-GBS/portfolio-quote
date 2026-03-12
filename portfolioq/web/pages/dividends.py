@@ -1,54 +1,51 @@
 import plotly.graph_objects as go
 import streamlit as st
+import pandas as pd
 from datetime import datetime, timedelta
 from portfolioq.db import Dividend
-from portfolioq.web.context import get_dividends_table
+from portfolioq.web.context import get_dividends_table, all_years, all_tickers, get_filtered_data
 
 
-@st.cache_data
-def all_tickers():
-    return ["abc", "def", "ghi"]
-
-@st.cache_data
-def all_years():
-    return [2024, 2025, 2026]
-
-@st.cache_data
-def get_data(tickers):
-    return [0.3, 0.2, 0.23, 0.17][:len(tickers)]
-
-
-def figure_dividends_pie(tickers):
+def figure_dividends_pie(years, tickers):
+    data = get_filtered_data(get_dividends_table(), years, tickers)
+    df = pd.DataFrame([
+        (d.ticker, d.amount / d.marketValue) for d in data
+    ], columns=['ticker', 'rate'])
     fig = go.Figure([
-        go.Pie(labels=tickers, values=get_data(tickers))
+        go.Pie(labels=df['ticker'], values=df['rate'])
     ])
     return fig
 
-def figure_dividends_bar(tickers):
+def figure_dividends_bar(years, tickers):
+    data = get_filtered_data(get_dividends_table(), years, tickers)
+    df = pd.DataFrame([
+        (d.ticker, d.amount / d.marketValue) for d in data
+    ], columns=['ticker', 'rate'])
     fig = go.Figure([
-        go.Bar(x=tickers, y=get_data(tickers))
+        go.Bar(x=df['ticker'], y=df['rate'])
     ])
     return fig
 
-def figure_dividends_time(tickers):
+def figure_dividends_time(years, tickers):
+    # data = get_filtered_data(get_dividends_table(), years, tickers)
     fig = go.Figure([
-        go.Scatter(x=[datetime.today(), datetime.today() - timedelta(days=30)], y=[1.0, 1.3], name="s1")
+        go.Scatter(x=[], y=[], name="s1"),
     ])
     return fig
 
 def frontend():
     st.title("Dividend Payout")
     st.markdown("## Past dividends received")
-    year = st.multiselect("Year", all_years())
-    ticker = st.multiselect("Ticker", all_tickers())
+    year = st.multiselect("Year", all_years(get_dividends_table()))
+    ticker = st.multiselect("Ticker", all_tickers(get_dividends_table()))
 
     st.markdown("### Total payout rate")
-    st.plotly_chart(figure_dividends_pie(ticker))
+    st.plotly_chart(figure_dividends_pie(year, ticker))
 
     st.markdown("### Payout rate per ticker")
-    st.plotly_chart(figure_dividends_bar(ticker))
+    st.plotly_chart(figure_dividends_bar(year, ticker))
 
     st.markdown("### Payout over time")
-    st.plotly_chart(figure_dividends_time(ticker))
+    st.plotly_chart(figure_dividends_time(year, ticker))
 
 frontend()

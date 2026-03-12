@@ -8,8 +8,16 @@ class Table(metaclass=ABCMeta):
         self.conn = get_connector()
         self.create()
 
+    def __hash__(self):
+        return hash(id(self))
+
     def close(self):
         self.conn.close()
+
+    def query(self, q: str):
+        cursor = self.conn.get_cursor()
+        cursor.execute(q)
+        return cursor.fetchall()
 
     @abstractmethod
     def create(self):
@@ -30,6 +38,9 @@ class DividendsTable(Table):
     def __init__(self):
         super().__init__()
 
+    def __hash__(self):
+        return hash(self.NAME)
+
     def create(self):
         with self.conn as c:
             c.get_cursor().execute(f"""
@@ -43,9 +54,10 @@ class DividendsTable(Table):
             )""")
 
     def all(self) -> list[Dividend]:
-        cursor = self.conn.get_cursor()
-        cursor.execute(f"SELECT * FROM {self.NAME}")
-        return [Dividend(**kw) for kw in cursor.fetchall()]
+        return [
+            Dividend(**{k:v for k,v in zip(Dividend.model_fields, kw)})
+            for kw in self.query(f"SELECT * FROM {self.NAME}")
+        ]
 
     def insert(self, values: list[Dividend]):
         if len(values) < 1:
@@ -67,6 +79,9 @@ class TradeTable(Table):
     def __init__(self):
         super().__init__()
 
+    def __hash__(self):
+        return hash(self.NAME)
+
     def create(self):
         with self.conn as c:
             c.get_cursor().execute(f"""
@@ -81,9 +96,10 @@ class TradeTable(Table):
             )""")
 
     def all(self) -> list[Trade]:
-        cursor = self.conn.get_cursor()
-        cursor.execute(f"SELECT * FROM {self.NAME}")
-        return [Trade(**kw) for kw in cursor.fetchall()]
+        return [
+            Trade(**{k:v for k,v in zip(Trade.model_fields, kw)})
+            for kw in self.query(f"SELECT * FROM {self.NAME}")
+        ]
 
     def insert(self, values: list[Trade]):
         if len(values) < 1:
