@@ -10,6 +10,6 @@ def main():
     nav = st.navigation(nav_pages)
 
     st.set_page_config(page_title="Portfolio Quote",
-                    layout="wide")
+                       layout="wide")
 
     nav.run()
