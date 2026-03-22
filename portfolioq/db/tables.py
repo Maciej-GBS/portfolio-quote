@@ -64,7 +64,7 @@ class DividendsTable(Table):
         if len(values) < 1:
             return
         values = [obj.model_dump() for obj in values]
-        s_keys = [str(k) for k in values[0].keys()]
+        s_keys = [str(k) for k in values[0].keys() if k != "id"]
         columns = ",".join(s_keys)
         value_keys = ",".join(f":{k}" for k in s_keys)
         with self.conn as c:
@@ -106,7 +106,7 @@ class TradeTable(Table):
         if len(values) < 1:
             return
         values = [obj.model_dump() for obj in values]
-        s_keys = [str(k) for k in values[0].keys()]
+        s_keys = [str(k) for k in values[0].keys() if k != "id"]
         columns = ",".join(s_keys)
         value_keys = ",".join(f":{k}" for k in s_keys)
         with self.conn as c:
