@@ -1,4 +1,4 @@
-"Generate random extracted data for loading"
+"Generate random data in extracted view for loading"
 import random
 from datetime import datetime, timedelta
 from portfolioq.db import Dividend, Trade

@@ -15,6 +15,7 @@ class Dividend(BaseModel):
     "The tax paid at source"
     currency: str
     "The currency in which `amount`, `marketValue` and `withholdingTax` are represented"
+    # clientId: int
 
 class Trade(BaseModel):
     "A trade position which is completed and cashed in"
@@ -29,3 +30,10 @@ class Trade(BaseModel):
     sellValue: float
     currency: str
     "The currency in which `buyValue` and `sellValue` are represented"
+    # clientId: int
+
+class Client(BaseModel):
+    "Client information for grouping portfolio views"
+    id: int
+    "Unique identifier"
+    name: str
