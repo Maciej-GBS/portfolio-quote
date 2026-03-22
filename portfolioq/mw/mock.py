@@ -50,6 +50,7 @@ class MockData:
             payoutDate=self.random_day(),
             amount=value,
             marketValue=random.randint(10, 40) * value,
+            withholdingTax=value * 0.1,
             currency=self.random_currency()
         )
 

@@ -50,6 +50,7 @@ class DividendsTable(Table):
                 payoutDate DATE NOT NULL,
                 amount REAL NOT NULL,
                 marketValue REAL NOT NULL,
+                withholdingTax REAL NOT NULL,
                 currency VARCHAR NOT NULL
             )""")
 

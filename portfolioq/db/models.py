@@ -11,8 +11,10 @@ class Dividend(BaseModel):
     amount: float
     marketValue: float
     "The value of the holdings which generated the dividend"
+    withholdingTax: float
+    "The tax paid at source"
     currency: str
-    "The currency in which `amount` and `marketValue` are represented"
+    "The currency in which `amount`, `marketValue` and `withholdingTax` are represented"
 
 class Trade(BaseModel):
     "A trade position which is completed and cashed in"
