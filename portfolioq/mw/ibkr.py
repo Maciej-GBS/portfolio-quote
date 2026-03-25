@@ -13,6 +13,9 @@ import pandas as pd
 from datetime import datetime
 from portfolioq.db import Dividend, Trade
 
+CODE_OPEN = "O"
+CODE_CLOSE = "C"
+
 def line_filter(file: str, filter_func):
     early_stop_active = False
     with open(file, 'r') as f:
@@ -53,7 +56,7 @@ def lines_to_dataframe(iterable) -> pd.DataFrame:
 class IbkrDividendStream:
     def __init__(self, file: str):
         self.dividends = lines_to_dataframe(
-            line_filter(file, lambda l: l.startswith("Dividends")))
+            line_filter(file, lambda l: l.startswith("Dividends"))).sort_values("Date", ascending=True)
         self.tax = lines_to_dataframe(
             line_filter(file, lambda l: l.startswith("Withholding Tax")))
         self._drop_nondata_rows()
@@ -95,33 +98,98 @@ class IbkrDividendStream:
         )
 
 class IbkrTradeStream:
-    def __init__(self):
+    def __init__(self, files: list | None = None):
         self._criteria = lambda l: all([
             l.startswith("Trades,Header"),
             "Comm/Fee" in l
         ]) or l.startswith("Trades,Data,Order")
         self.files = []
-        self.open_trades = []
+
+        for f in (files or []):
+            self.add_file(f)
 
     def add_file(self, file: str):
         self.files.append(file)
         return self
 
     def __iter__(self):
-        trade_history = combined_iterator(*[
-            line_filter(f, self._criteria) for f in self.files
-        ])
-        self.data_ = lines_to_dataframe(trade_history)
+        trade_history = combined_iterator(*[line_filter(f, self._criteria) for f in self.files])
+        self.data_ = iter(lines_to_dataframe(trade_history)
+                          .sort_values("Date/Time", ascending=True)
+                          .iterrows())
+        self.open_trades_ = {}
+        self.pending_ = []
         return self
 
     def __next__(self) -> Trade:
-        Trade(
-            id=-1,
-            ticker="Symbol",
-            currency="Currency",
-            buyDate="Date/Time;O",
-            sellDate="Date/Time;C",
-            buyValue="- Proceeds - Comm/Fee",
-            sellValue="Proceeds + Comm/Fee"
-        )
-        raise StopIteration()
+        if self.pending_:
+            return self.pending_.pop(0)
+        _, row = next(self.data_)
+        trade_key = row["Currency"] + " " + row["Symbol"]
+        codes = row["Code"].split(";")
+        if CODE_OPEN in codes:
+            active_trades = self.open_trades_.get(trade_key, None)
+            new_trade = Trade(
+                id=-1,
+                ticker=row["Symbol"],
+                currency=row["Currency"],
+                buyDate=row["Date/Time"],
+                sellDate=datetime.min,
+                buyValue=-(row["Proceeds"] + row["Comm/Fee"]),
+                sellValue=0.0,
+                quantity=row["Quantity"]
+            )
+            if active_trades is None:
+                self.open_trades_.update({trade_key: [new_trade]})
+            else:
+                active_trades.append(new_trade)
+        elif CODE_CLOSE in codes:
+            closed_trades: list[Trade] = self._pop_by_quantity(trade_key, row["Quantity"])
+            if closed_trades:
+                self.pending_ = [
+                    Trade(
+                        id=-1,
+                        ticker=row["Symbol"],
+                        currency=row["Currency"],
+                        buyDate=t.buyDate,
+                        sellDate=row["Date/Time"],
+                        buyValue=t.buyValue,
+                        sellValue=row["Proceeds"] + row["Comm/Fee"],
+                        quantity=t.quantity
+                    )
+                    for t in closed_trades
+                ]
+                return self.pending_.pop(0)
+            else:
+                print(f"Warning: discarding Trade, not found in active : {row}")
+        # Trade is active, cannot produce until closed
+        return next(self)
+
+    def _pop_by_quantity(self, key, quantity: float):
+        "Pop open trades in FIFO mode by given quantity and adjust for partial operations."
+        active_trades: list[Trade] = self.open_trades_.get(key, None)
+        if active_trades is None:
+            return None
+        closed = []
+        while len(active_trades) > 0 and quantity > 1e-5:
+            t = active_trades.pop(0)
+            quantity -= t.quantity
+            closed.append(t)
+        if len(closed) > 0 and quantity < 0.0:
+            adjusted_t: Trade = closed[-1]
+            remaining_active_q = -quantity
+            remaining_factor = remaining_active_q / adjusted_t.quantity
+            active_trades.insert(0, Trade(
+                id=-1,
+                ticker=adjusted_t.ticker,
+                currency=adjusted_t.currency,
+                buyDate=adjusted_t.buyDate,
+                sellDate=adjusted_t.sellDate,
+                buyValue=adjusted_t.buyValue * remaining_factor,
+                sellValue=adjusted_t.sellValue * remaining_factor,
+                quantity=remaining_active_q
+            ))
+            adjusted_t.buyValue *= (1 - remaining_factor)
+            adjusted_t.sellValue *= (1 - remaining_factor)
+            adjusted_t.quantity -= remaining_active_q
+        return closed

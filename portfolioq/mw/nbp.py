@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 SATURDAY = 5
 
 def str_to_float(s: str) -> float:
-    return float(s.replace(',', '.')) if type(s) is str else float(s)
+    return float(s.replace(',', '.')) if isinstance(s, str) else float(s)
 
 class NbpConverter:
     def __init__(self, nbp_tables: list):
@@ -44,7 +44,7 @@ class NbpConverter:
         assert len(scale) == len(currencies)
         scale.index = currencies
 
-        data = df[df.index.map(lambda i: type(i) is str and i.isdecimal())]
+        data = df[df.index.map(lambda i: isinstance(i, str) and i.isdecimal())]
         data = data.map(str_to_float)
         data.index = data.index.map(lambda i: datetime.strptime(i, r'%Y%m%d'))
         assert data.shape[1] == len(currencies)

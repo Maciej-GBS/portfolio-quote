@@ -93,7 +93,8 @@ class TradeTable(Table):
                 sellDate DATE NOT NULL,
                 buyValue REAL NOT NULL,
                 sellValue REAL NOT NULL,
-                currency VARCHAR NOT NULL
+                currency VARCHAR NOT NULL,
+                quantity REAL
             )""")
 
     def all(self) -> list[Trade]:

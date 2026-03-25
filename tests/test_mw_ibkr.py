@@ -1,6 +1,6 @@
 import pytest
 from portfolioq.db import Dividend, Trade
-from portfolioq.mw.ibkr import combined_iterator, IbkrDividendStream
+from portfolioq.mw.ibkr import combined_iterator, IbkrDividendStream, IbkrTradeStream
 
 @pytest.fixture
 def fixture_ibkr_archives():
@@ -23,3 +23,9 @@ def test_dividend_stream(fixture_ibkr_archives):
         for d in s:
             print(d)
             assert type(d) is Dividend
+
+def test_trade_stream(fixture_ibkr_archives):
+    s = IbkrTradeStream(fixture_ibkr_archives)
+    for t in s:
+        print(t)
+        assert type(t) is Trade

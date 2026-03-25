@@ -1,5 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel
+from typing import Optional
 
 class Dividend(BaseModel):
     "An event of dividend transaction"
@@ -30,6 +31,8 @@ class Trade(BaseModel):
     sellValue: float
     currency: str
     "The currency in which `buyValue` and `sellValue` are represented"
+    quantity: Optional[float] = None
+    "Quantity of the underlying asset"
     # clientId: int
 
 class Client(BaseModel):
