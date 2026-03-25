@@ -17,6 +17,11 @@ class Table(metaclass=ABCMeta):
         self.close()
 
     def _lazy_init(self):
+        # it turns out that streamlit and SQLite do not cooperate
+        # since one thread may allocate the connector
+        # while a different one may need to use it later, causing a programming error
+        # the purpose of lazy connector creation is to avoid setting up
+        # too many unnecessary connections to SQLite during runtime
         self.conn = Connector()
         self.create()
 
