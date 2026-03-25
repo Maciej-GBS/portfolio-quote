@@ -4,11 +4,9 @@ from portfolioq.db import Table, DividendsTable, TradeTable, get_connector
 from portfolioq.db import Dividend, Trade
 
 def reset_db():
-    conn = get_connector()
-    with conn:
+    with get_connector() as conn:
         for tab_name in [DividendsTable.NAME, TradeTable.NAME]:
             conn.get_cursor().execute(f"DROP TABLE IF EXISTS {tab_name};")
-    conn.close()
     with get_dividends_table() as tab:
         tab.create()
     with get_trade_table() as tab:

@@ -37,5 +37,17 @@ class Connector:
         self.conn.close()
         self.conn = None
 
-def get_connector() -> Connector:
-    return Connector()
+class SafeConnector(Connector):
+    "Same as Connector, but upon exit closes automatically."
+
+    def __init__(self):
+        super().__init__()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        super().__exit__(exc_type, exc_value, traceback)
+        self.close()
+
+
+def get_connector() -> SafeConnector:
+    "Returns a single-use safe connector"
+    return SafeConnector()

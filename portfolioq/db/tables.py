@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from .connector import get_connector
+from .connector import Connector
 from .models import Dividend, Trade
 
 
@@ -17,7 +17,7 @@ class Table(metaclass=ABCMeta):
         self.close()
 
     def _lazy_init(self):
-        self.conn = get_connector()
+        self.conn = Connector()
         self.create()
 
     def close(self):
@@ -34,7 +34,7 @@ class Table(metaclass=ABCMeta):
     @abstractmethod
     def create(self):
         if not self.conn:
-            self.conn = get_connector()
+            self.conn = Connector()
 
     @abstractmethod
     def all(self):
