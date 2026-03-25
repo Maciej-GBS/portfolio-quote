@@ -35,8 +35,8 @@ class NbpConverter:
             return self._df.loc[closest_day, currency]
         raise ValueError(f"Day {day} is out of range!")
 
-    def load_nbp_table(self, nbp_table_path: str):
-        df = pd.read_csv(nbp_table_path, header=0, index_col=0, sep=';', encoding='cp1250')
+    def load_nbp_table(self, nbp_file_like):
+        df = pd.read_csv(nbp_file_like, header=0, index_col=0, sep=';', encoding='cp1250')
         df = df.dropna(axis=1, how='any').dropna(axis=0, how='any')
 
         currencies = df.loc['kod ISO']

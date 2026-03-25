@@ -1,7 +1,17 @@
 import streamlit as st
 import portfolioq.mw as qmw
 from portfolioq.web.context import get_dividends_table, get_trade_table, reset_db
+from portfolioq.web.context import get_currency_converter
 
+@st.fragment
+def nbp_data_frontend():
+    st.markdown("### Currency rates")
+    data = st.file_uploader("Official NBP csv tables", accept_multiple_files=True, type="csv")
+    converter = get_currency_converter()
+    for f in data:
+        converter.load_nbp_table(f)
+
+@st.fragment
 def ibkr_data_frontend():
     st.markdown("### IBKR Client")
     # st.file_uploader()
@@ -14,6 +24,7 @@ def generate_mock_data(num_dividends: int, num_trades: int):
     with get_trade_table() as tab:
         tab.insert([next(trade_stream) for _ in range(num_trades)])
 
+@st.fragment
 def mock_data_frontend():
     st.markdown("### Mock your data")
     n_dividends = st.number_input("# of dividends", min_value=0)
@@ -32,6 +43,8 @@ def mock_data_frontend():
 def frontend():
     st.title("Portfolio Quote")
     st.markdown("## Welcome to super-cow powered portfolio monitor!")
+    nbp_data_frontend()
+    st.divider()
     ibkr_data_frontend()
     st.divider()
     mock_data_frontend()
