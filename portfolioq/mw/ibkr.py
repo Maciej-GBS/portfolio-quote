@@ -38,15 +38,19 @@ def safe_split(s: str, sep: str = ',', escape: str = '"') -> tuple:
     escape_flag = False
     for elem in s.split(sep):
         if elem.startswith(escape):
-            result.append(elem)
+            result.append(elem[1:])
             escape_flag = True
         elif elem.endswith(escape):
-            result[-1] = result[-1] + elem
+            result[-1] = result[-1] + elem[:-1]
             escape_flag = False
         elif escape_flag:
             result[-1] = result[-1] + elem
         else:
-            result.append(elem)
+            num_test = elem.replace('.', '', 1)
+            if num_test.isnumeric() or (num_test.startswith('-') and num_test[1:].isnumeric()):
+                result.append(float(elem))
+            else:
+                result.append(elem)
     return tuple(result)
 
 def lines_to_dataframe(iterable) -> pd.DataFrame:
