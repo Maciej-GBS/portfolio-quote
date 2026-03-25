@@ -1,28 +1,33 @@
 import streamlit as st
+from portfolioq.mw import NbpConverter
 from portfolioq.db import Table, DividendsTable, TradeTable, get_connector
 from portfolioq.db import Dividend, Trade
 
-CACHE_TTL = 60
-
 def reset_db():
-    with get_connector() as conn:
+    conn = get_connector()
+    with conn:
         for tab_name in [DividendsTable.NAME, TradeTable.NAME]:
             conn.get_cursor().execute(f"DROP TABLE IF EXISTS {tab_name};")
-    get_dividends_table().create()
-    get_trade_table().create()
+    conn.close()
+    with get_dividends_table() as tab:
+        tab.create()
+    with get_trade_table() as tab:
+        tab.create()
 
-@st.cache_resource
 def get_dividends_table() -> DividendsTable:
     return DividendsTable()
 
-@st.cache_resource
 def get_trade_table() -> TradeTable:
     return TradeTable()
+
+@st.cache_resource
+def get_currency_converter() -> NbpConverter:
+    return NbpConverter()
 
 def _hash_func(obj):
     return hash(obj)
 
-@st.cache_data(ttl=CACHE_TTL, hash_funcs={DividendsTable: _hash_func, TradeTable: _hash_func})
+@st.cache_data(hash_funcs={DividendsTable: _hash_func, TradeTable: _hash_func})
 def all_years(tab: Table) -> list[int]:
     if isinstance(tab, DividendsTable):
         date_column = 'payoutDate'
@@ -34,14 +39,14 @@ def all_years(tab: Table) -> list[int]:
                        f"FROM {tab.NAME} ORDER BY year ASC;")
     return [row[0] for row in result]
 
-@st.cache_data(ttl=CACHE_TTL, hash_funcs={DividendsTable: _hash_func, TradeTable: _hash_func})
+@st.cache_data(hash_funcs={DividendsTable: _hash_func, TradeTable: _hash_func})
 def all_tickers(tab: Table) -> list[str]:
     if isinstance(tab, DividendsTable) or isinstance(tab, TradeTable):
         result = tab.query(f"SELECT DISTINCT ticker FROM {tab.NAME} ORDER BY ticker;")
         return [row[0] for row in result]
     raise TypeError(f"Table {type(tab)} does not support all_tickers selection")
 
-@st.cache_data(ttl=CACHE_TTL, hash_funcs={DividendsTable: _hash_func, TradeTable: _hash_func})
+@st.cache_data(hash_funcs={DividendsTable: _hash_func, TradeTable: _hash_func})
 def get_filtered_data(tab: Table, years: list[int], tickers: list[str]) -> list:
     if isinstance(tab, DividendsTable):
         date_column = 'payoutDate'

@@ -1,4 +1,5 @@
 import streamlit as st
+from portfolioq.web.context import get_currency_converter
 
 def frontend():
     st.title("Value Change")

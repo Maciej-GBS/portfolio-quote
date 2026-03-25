@@ -15,20 +15,20 @@ def str_to_float(s: str) -> float:
     return float(s.replace(',', '.')) if isinstance(s, str) else float(s)
 
 class NbpConverter:
-    def __init__(self, nbp_tables: list):
+    def __init__(self):
         self._scales = {}
         self._df = pd.DataFrame()
-        for path in nbp_tables:
-            self.load_nbp_table(path)
 
-    def __call__(self, value: float, foreign_currency: str, day: datetime):
+    def __call__(self, value: float, foreign_currency: str, day: datetime) -> float:
         "Converts foreign to home currency at a given day"
         while day.weekday() >= SATURDAY:
             day += timedelta(days=1)
         day = day.date()
         return value * self._loc_closest(foreign_currency, day) / self._scales[foreign_currency]
 
-    def _loc_closest(self, currency: str, day: datetime):
+    def _loc_closest(self, currency: str, day: datetime) -> float:
+        if len(self._df) == 0:
+            raise ValueError("No data available for currency conversion!")
         idx = self._df.index
         closest_day = idx[idx >= pd.to_datetime(day)].min()
         if closest_day is not pd.NaT:

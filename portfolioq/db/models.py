@@ -4,7 +4,7 @@ from typing import Optional
 
 class Dividend(BaseModel):
     "An event of dividend transaction"
-    id: int
+    id: int # TODO checksum for identifying duplicate data
     "Unique identifier"
     ticker: str
     payoutDate: datetime
@@ -16,11 +16,11 @@ class Dividend(BaseModel):
     "The tax paid at source"
     currency: str
     "The currency in which `amount`, `marketValue` and `withholdingTax` are represented"
-    # clientId: int
+    # clientId: int # TODO
 
 class Trade(BaseModel):
     "A trade position which is completed and cashed in"
-    id: int
+    id: int # TODO checksum for identifying duplicate data
     "Unique identifier"
     ticker: str
     buyDate: datetime
@@ -33,7 +33,7 @@ class Trade(BaseModel):
     "The currency in which `buyValue` and `sellValue` are represented"
     quantity: Optional[float] = None
     "Quantity of the underlying asset"
-    # clientId: int
+    # clientId: int # TODO
 
 class Client(BaseModel):
     "Client information for grouping portfolio views"
