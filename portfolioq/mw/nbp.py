@@ -15,12 +15,17 @@ def str_to_float(s: str) -> float:
     return float(s.replace(',', '.')) if isinstance(s, str) else float(s)
 
 class NbpConverter:
+    HOME_CURRENCY = 'PLN'
+
     def __init__(self):
+        self.stats_ = {}
         self._scales = {}
         self._df = pd.DataFrame()
 
     def __call__(self, value: float, foreign_currency: str, day: datetime) -> float:
         "Converts foreign to home currency at a given day"
+        if foreign_currency == self.HOME_CURRENCY:
+            return value
         while day.weekday() >= SATURDAY:
             day += timedelta(days=1)
         day = day.date()
@@ -32,6 +37,9 @@ class NbpConverter:
         idx = self._df.index
         closest_day = idx[idx >= pd.to_datetime(day)].min()
         if closest_day is not pd.NaT:
+            stat_delta = closest_day - day
+            stat_min, stat_max = self.stats_.get(currency, (stat_delta,) * 2)
+            self.stats_[currency] = (min(stat_delta, stat_min), max(stat_delta, stat_max))
             return self._df.loc[closest_day, currency]
         raise ValueError(f"Day {day} is out of range!")
 
@@ -52,3 +60,6 @@ class NbpConverter:
 
         self._df = pd.concat((self._df, data), axis=1)
         self._scales.update(scale.map(str_to_float).to_dict())
+
+    def reset_stats(self):
+        self.stats_ = {}

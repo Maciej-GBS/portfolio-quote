@@ -10,6 +10,7 @@ def nbp_data_frontend():
     converter = get_currency_converter()
     for f in data:
         converter.load_nbp_table(f)
+        st.info(f"Loaded successfully: {f.name}")
 
 @st.fragment
 def ibkr_data_frontend():

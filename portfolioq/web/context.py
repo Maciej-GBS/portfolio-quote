@@ -54,6 +54,7 @@ def get_filtered_data(tab: Table, years: list[int], tickers: list[str]) -> list:
         target_cls = Trade
     else:
         raise TypeError(f"Table {type(tab)} does not support filter_by_year_ticker selection")
+
     combined_filter = []
     if years:
         year_filter = f"CAST(strftime('%Y', {date_column}) AS INTEGER) IN ({','.join(str(y) for y in years)})"
