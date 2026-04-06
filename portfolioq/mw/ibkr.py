@@ -96,8 +96,12 @@ class IbkrDividendStream:
             ticker=row["Symbol"],
             payoutDate=datetime.strptime(row["Date"], r"%Y-%m-%d"),
             amount=row["Amount"],
-            marketValue=1e9, # TODO replace placeholder
-            withholdingTax=tax,
+            # TODO replace 1e9 placeholder
+            marketValue=1e9,
+            # withholdingTax can be used to avoid double tax. However, there is a limit of 15%
+            # which can be applied. This limit applies for U.S. and many others even when
+            # a higher tax had actually been paid at source
+            withholdingTax=min(tax, 0.15 * row["Amount"]),
             currency=row["Currency"]
         )
 

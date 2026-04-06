@@ -16,4 +16,4 @@ def test_load_archive(fixture_nbp_archives):
         converter.load_nbp_table(path)
     print(converter(1.0, "EUR", datetime(year=2025, month=6, day=13, hour=11)))
     with pytest.raises(ValueError):
-        converter(1.0, "USD", datetime.today())
+        converter(1.0, "USD", datetime(year=2000, month=1, day=2))

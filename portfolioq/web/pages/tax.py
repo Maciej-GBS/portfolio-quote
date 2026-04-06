@@ -9,7 +9,40 @@ def available_tax_years() -> list[int]:
     full_ls = all_years(get_dividends_table()) + all_years(get_trade_table())
     return sorted(set(full_ls))
 
-class DividendTransforms:
+class TradeTransforms:
+    def __init__(self, tax_rate: float):
+        self.converter = get_currency_converter()
+        self.tax_rate = tax_rate
+
+    def __iter__(self):
+        return iter(self.to_list())
+
+    def layer_convert(self, obj: Trade) -> dict:
+        buyValNorm = self.converter(obj.buyValue, obj.currency, obj.buyDate)
+        sellValNorm = self.converter(obj.sellValue, obj.currency, obj.sellDate)
+        return {"ticker": obj.ticker,
+                "change": buyValNorm - sellValNorm,
+                "cost": buyValNorm,
+                "earnings": sellValNorm}
+
+    def layer_tax(self, obj: dict) -> dict:
+        return {**obj,
+                "tax": max(0.0, self.tax_rate * obj["change"])}
+
+    def layer_round(self, obj: dict) -> dict:
+        return {
+            **obj,
+            **{f"{k}_round": round(obj[k]) for k in obj if isinstance(obj[k], float)}
+        }
+
+    def to_list(self) -> list:
+        return [
+            self.layer_convert,
+            self.layer_tax,
+            self.layer_round
+        ]
+
+class DividendTransforms(TradeTransforms):
     def __init__(self, tax_rate: float):
         self.converter = get_currency_converter()
         self.tax_rate = tax_rate
@@ -26,12 +59,6 @@ class DividendTransforms:
         return {**obj,
                 "tax": self.tax_rate * obj["amount"]}
 
-    def layer_round(self, obj: dict) -> dict:
-        return {
-            **obj,
-            **{f"{k}_round": round(obj[k]) for k in obj if isinstance(obj[k], float)}
-        }
-
     def to_list(self) -> list:
         return [
             self.layer_convert,
@@ -39,9 +66,8 @@ class DividendTransforms:
             self.layer_round
         ]
 
-def dividend_tax(year: int, tax_rate: float) -> pd.DataFrame:
-    data = get_filtered_data(get_dividends_table(), [year], tickers=[])
-    transforms = DividendTransforms(tax_rate)
+def data_tax(table, transforms, year: int) -> pd.DataFrame:
+    data = get_filtered_data(table, [year], tickers=[])
     for layer in transforms:
         data = map(layer, data)
     return pd.DataFrame(list(data)).set_index("ticker", append=True)
@@ -57,17 +83,20 @@ def frontend():
     if st.button("Calculate") and yr:
         ctn = tax_result.container()
 
-        taxes_on_dividends = dividend_tax(yr, tax_rate)
+        taxes_on_dividends = data_tax(get_dividends_table(), DividendTransforms(tax_rate), yr)
         ctn.markdown("### from dividends\n"
                      "- amount - total income\n"
                      "- withholdingTax - cost of the income (already paid tax)\n"
-                     "- tax - estimated tax to pay (not excluding cost)")
+                     "- tax - estimated tax to pay (based on amount only)")
         ctn.dataframe(taxes_on_dividends.sum(axis=0))
         ctn.dataframe(taxes_on_dividends)
         ctn.divider()
 
-        # taxes_on_trades = trade_tax(yr, tax_rate)
-        ctn.markdown("### from trades")
+        taxes_on_trades = data_tax(get_trade_table(), TradeTransforms(tax_rate), yr)
+        ctn.markdown("### from trades\n"
+                     "- change - profits or loses")
+        ctn.dataframe(taxes_on_trades.sum(axis=0))
+        ctn.dataframe(taxes_on_trades)
         ctn.divider()
 
         ctn.markdown("### Conversion stats")

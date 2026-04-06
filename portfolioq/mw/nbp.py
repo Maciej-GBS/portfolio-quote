@@ -37,7 +37,8 @@ class NbpConverter:
         if not isinstance(day, pd.Timestamp):
             day = pd.to_datetime(day)
         idx = self._df.index
-        closest_day = idx[idx >= day].min()
+        # naive T+2 implementation, ignores non-work days
+        closest_day = idx[idx <= (day + pd.Timedelta(days=2))].max()
         if closest_day is not pd.NaT:
             stat_delta = closest_day - day
             self._update_stat(currency, stat_delta)
