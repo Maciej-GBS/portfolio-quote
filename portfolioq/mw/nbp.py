@@ -18,9 +18,9 @@ class NbpConverter:
     HOME_CURRENCY = 'PLN'
 
     def __init__(self):
-        self.stats_ = {}
         self._scales = {}
         self._df = pd.DataFrame()
+        self.reset_stats()
 
     def __call__(self, value: float, foreign_currency: str, day: datetime) -> float:
         "Converts foreign to home currency at a given day"
@@ -34,12 +34,13 @@ class NbpConverter:
     def _loc_closest(self, currency: str, day: datetime) -> float:
         if len(self._df) == 0:
             raise ValueError("No data available for currency conversion!")
+        if not isinstance(day, pd.Timestamp):
+            day = pd.to_datetime(day)
         idx = self._df.index
-        closest_day = idx[idx >= pd.to_datetime(day)].min()
+        closest_day = idx[idx >= day].min()
         if closest_day is not pd.NaT:
             stat_delta = closest_day - day
-            stat_min, stat_max = self.stats_.get(currency, (stat_delta,) * 2)
-            self.stats_[currency] = (min(stat_delta, stat_min), max(stat_delta, stat_max))
+            self._update_stat(currency, stat_delta)
             return self._df.loc[closest_day, currency]
         raise ValueError(f"Day {day} is out of range!")
 
@@ -63,3 +64,7 @@ class NbpConverter:
 
     def reset_stats(self):
         self.stats_ = {}
+
+    def _update_stat(self, currency, delta):
+        stat_min, stat_max = self.stats_.get(currency, (delta,) * 2)
+        self.stats_[currency] = (min(delta, stat_min), max(delta, stat_max))
