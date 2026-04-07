@@ -18,10 +18,14 @@ class TradeTransforms:
         return iter(self.to_list())
 
     def layer_convert(self, obj: Trade) -> dict:
-        buyValNorm = self.converter(obj.buyValue, obj.currency, obj.buyDate)
+        try:
+            buyValNorm = self.converter(obj.buyValue, obj.currency, obj.buyDate)
+        except ValueError as e:
+            print(e)
+            buyValNorm = obj.buyValue
         sellValNorm = self.converter(obj.sellValue, obj.currency, obj.sellDate)
         return {"ticker": obj.ticker,
-                "change": buyValNorm - sellValNorm,
+                "change": sellValNorm - buyValNorm,
                 "cost": buyValNorm,
                 "earnings": sellValNorm}
 
@@ -32,7 +36,8 @@ class TradeTransforms:
     def layer_round(self, obj: dict) -> dict:
         return {
             **obj,
-            **{f"{k}_round": round(obj[k]) for k in obj if isinstance(obj[k], float)}
+            **{f"{k}_round": (max(1, round(obj[k])) if obj[k] > 0.0 else 0)
+               for k in obj if isinstance(obj[k], float)}
         }
 
     def to_list(self) -> list:
@@ -66,11 +71,14 @@ class DividendTransforms(TradeTransforms):
             self.layer_round
         ]
 
-def data_tax(table, transforms, year: int) -> pd.DataFrame:
+def tax_data(table, transforms, year: int) -> pd.DataFrame:
     data = get_filtered_data(table, [year], tickers=[])
     for layer in transforms:
         data = map(layer, data)
-    return pd.DataFrame(list(data)).set_index("ticker", append=True)
+    data = list(data)
+    if len(data) > 0:
+        return pd.DataFrame(data).set_index("ticker", append=True)
+    return pd.DataFrame()
 
 def frontend():
     st.title("Tax")
@@ -83,7 +91,7 @@ def frontend():
     if st.button("Calculate") and yr:
         ctn = tax_result.container()
 
-        taxes_on_dividends = data_tax(get_dividends_table(), DividendTransforms(tax_rate), yr)
+        taxes_on_dividends = tax_data(get_dividends_table(), DividendTransforms(tax_rate), yr)
         ctn.markdown("### from dividends\n"
                      "- amount - total income\n"
                      "- withholdingTax - cost of the income (already paid tax)\n"
@@ -92,7 +100,7 @@ def frontend():
         ctn.dataframe(taxes_on_dividends)
         ctn.divider()
 
-        taxes_on_trades = data_tax(get_trade_table(), TradeTransforms(tax_rate), yr)
+        taxes_on_trades = tax_data(get_trade_table(), TradeTransforms(tax_rate), yr)
         ctn.markdown("### from trades\n"
                      "- change - profits or loses")
         ctn.dataframe(taxes_on_trades.sum(axis=0))
