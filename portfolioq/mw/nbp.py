@@ -37,8 +37,8 @@ class NbpConverter:
         if not isinstance(day, pd.Timestamp):
             day = pd.to_datetime(day)
         idx = self._df.index
-        # naive T+2 implementation, ignores non-work days
-        closest_day = idx[idx <= (day + pd.Timedelta(days=2))].max()
+        # D-1 rate to be used based on transaction (T) day, not settlement day (T+2)
+        closest_day = idx[idx <= (day - pd.Timedelta(days=1))].max()
         if closest_day is not pd.NaT:
             stat_delta = closest_day - day
             self._update_stat(currency, stat_delta)
@@ -60,7 +60,9 @@ class NbpConverter:
         assert data.shape[1] == len(currencies)
         data.columns = currencies
 
-        self._df = pd.concat((self._df, data), axis=1)
+        # partial overlap of columns is not supported
+        axis = 0 if data.columns[0] in self._df.columns else 1
+        self._df = pd.concat((self._df, data), axis=axis)
         self._scales.update(scale.map(str_to_float).to_dict())
 
     def reset_stats(self):
