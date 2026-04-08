@@ -1,9 +1,12 @@
 import streamlit as st
+from io import StringIO
 import portfolioq.mw as qmw
 from portfolioq.web.context import get_dividends_table, get_trade_table, reset_db
 from portfolioq.web.context import get_currency_converter
 
 def load_nbp_data(files: list):
+    if len(files) == 0:
+        return
     converter = get_currency_converter()
     for f in files:
         converter.load_nbp_table(f)
@@ -17,12 +20,14 @@ def nbp_data_frontend():
         st.info(f"Loaded successfully: {f.name}")
 
 def load_ibkr_data(statements: list):
-    trade_stream = qmw.IbkrTradeStream(statements)
+    if len(statements) == 0:
+        return
+    trade_stream = qmw.IbkrTradeStream([StringIO(stmt.getvalue().decode('utf-8')) for stmt in statements])
     with get_trade_table() as tab:
         tab.insert(list(trade_stream))
     with get_dividends_table() as tab:
         for stmt in statements:
-            dividend_stream = qmw.IbkrDividendStream(stmt)
+            dividend_stream = qmw.IbkrDividendStream(StringIO(stmt.getvalue().decode('utf-8')))
             tab.insert(list(dividend_stream))
 
 @st.fragment
@@ -34,6 +39,8 @@ def ibkr_data_frontend():
         st.info(f"Loaded successfully: {f.name}")
 
 def generate_mock_data(num_dividends: int, num_trades: int):
+    if num_dividends == 0 and num_trades == 0:
+        return
     dividend_stream = qmw.MockDividendStream()
     trade_stream = qmw.MockTradeStream()
     with get_dividends_table() as tab:

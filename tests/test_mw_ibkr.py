@@ -6,7 +6,8 @@ from portfolioq.mw.ibkr import combined_iterator, IbkrDividendStream, IbkrTradeS
 def fixture_ibkr_archives():
     # TODO create a temp file and cleanup
     return [
-        "sample_data/U12345678_20240528_20250528.csv"
+        "sample_data/U12345678_20240528_20250528.csv",
+        "sample_data/U12345678_20250529_20260320.csv"
     ]
 
 def test_combined_iterator():

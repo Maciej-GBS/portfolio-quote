@@ -10,15 +10,27 @@ use the account base currency which makes it difficult to
 calculate tax.
 """
 import pandas as pd
+from contextlib import contextmanager
 from datetime import datetime
 from portfolioq.db import Dividend, Trade
 
 CODE_OPEN = "O"
 CODE_CLOSE = "C"
 
-def line_filter(file: str, filter_func):
+@contextmanager
+def to_iterable(file):
+    if hasattr(file, 'readline'):
+        yield file
+    elif isinstance(file, list):
+        yield file
+    else:
+        f = open(file, 'r')
+        yield f
+        f.close()
+
+def line_filter(file, filter_func):
     early_stop_active = False
-    with open(file, 'r') as f:
+    with to_iterable(file) as f:
         for line in f:
             if filter_func(line):
                 early_stop_active = True
@@ -58,13 +70,16 @@ def lines_to_dataframe(iterable) -> pd.DataFrame:
     return pd.DataFrame(data=[safe_split(line) for line in iterable], columns=header)
 
 class IbkrDividendStream:
-    def __init__(self, file: str):
+    def __init__(self, file):
+        criteria_dividends = lambda l: l.startswith("Dividends")
+        criteria_tax = lambda l: l.startswith("Withholding Tax")
+        lines = list(line_filter(file, lambda l: criteria_dividends(l) or criteria_tax(l)))
         self.dividends = lines_to_dataframe(
-            line_filter(file, lambda l: l.startswith("Dividends"))).sort_values("Date", ascending=True)
-        self.tax = lines_to_dataframe(
-            line_filter(file, lambda l: l.startswith("Withholding Tax")))
+            line_filter(lines, criteria_dividends)).sort_values("Date", ascending=True)
+        self.tax = lines_to_dataframe(line_filter(lines, criteria_tax))
         self._drop_nondata_rows()
         self._infer_symbol_column()
+        self._positive_tax_sign()
         self._queryable_tax()
 
     def _drop_nondata_rows(self):
@@ -79,9 +94,12 @@ class IbkrDividendStream:
         self.dividends["Symbol"] = self.dividends["Description"].map(extract_symbol)
         self.tax["Symbol"] = self.tax["Description"].map(extract_symbol)
 
+    def _positive_tax_sign(self):
+        self.tax["Amount"] *= -1.0
+
     def _queryable_tax(self):
         self.tax["Q"] = self.tax["Currency"] + ";" + self.tax["Symbol"] + ";" + self.tax["Date"]
-        self.tax.set_index("Q", inplace=True)
+        self.tax = self.tax[["Q", "Amount"]].groupby("Q").aggregate("sum")
         self.tax = self.tax["Amount"].to_dict()
 
     def __iter__(self):
@@ -107,10 +125,11 @@ class IbkrDividendStream:
 
 class IbkrTradeStream:
     def __init__(self, files: list | None = None):
-        self._criteria = lambda l: all([
+        self._criteria_header = lambda l: all([
             l.startswith("Trades,Header"),
             "Comm/Fee" in l
-        ]) or l.startswith("Trades,Data,Order")
+        ])
+        self._criteria = lambda l: l.startswith("Trades,Data,Order")
         self.files = []
 
         for f in (files or []):
@@ -121,7 +140,13 @@ class IbkrTradeStream:
         return self
 
     def __iter__(self):
-        trade_history = combined_iterator(*[line_filter(f, self._criteria) for f in self.files])
+        if len(self.files) == 0:
+            self.data_ = iter(self.files)
+            return self
+        trade_history = combined_iterator(
+            line_filter(self.files[0], self._criteria_header),
+            *(line_filter(f, self._criteria) for f in self.files)
+        )
         self.data_ = iter(lines_to_dataframe(trade_history)
                           .sort_values("Date/Time", ascending=True)
                           .iterrows())
@@ -169,7 +194,7 @@ class IbkrTradeStream:
                 ]
                 return self.pending_.pop(0)
             else:
-                print(f"Warning: discarding Trade, not found in active : {row}")
+                print(f"Warning: discarding Trade, not found in active : {row.to_dict()}")
         # Trade is active, cannot produce until closed
         return next(self)
 
