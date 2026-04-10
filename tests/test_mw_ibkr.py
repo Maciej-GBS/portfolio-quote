@@ -21,12 +21,18 @@ def test_combined_iterator():
 def test_dividend_stream(fixture_ibkr_archives):
     for archive in fixture_ibkr_archives:
         s = IbkrDividendStream(archive)
+        value_produced = False
         for d in s:
+            value_produced = True
             print(d)
             assert type(d) is Dividend
+        assert value_produced
 
 def test_trade_stream(fixture_ibkr_archives):
     s = IbkrTradeStream(fixture_ibkr_archives)
+    value_produced = False
     for t in s:
+        value_produced = True
         print(t)
         assert type(t) is Trade
+    assert value_produced

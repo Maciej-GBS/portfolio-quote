@@ -36,7 +36,7 @@ class TradeTransforms:
     def layer_round(self, obj: dict) -> dict:
         return {
             **obj,
-            **{f"{k}_round": (max(1, round(obj[k])) if obj[k] > 0.0 else 0)
+            **{f"{k}_round": round(obj[k])
                for k in obj if isinstance(obj[k], float)}
         }
 
@@ -62,7 +62,8 @@ class DividendTransforms(TradeTransforms):
 
     def layer_tax(self, obj: dict) -> dict:
         return {**obj,
-                "tax": self.tax_rate * obj["amount"]}
+                "tax": self.tax_rate * obj["amount"],
+                "taxWithDeductions": self.tax_rate * obj["amount"] - obj["withholdingTax"]}
 
     def to_list(self) -> list:
         return [
@@ -95,14 +96,17 @@ def frontend():
         ctn.markdown("### from dividends\n"
                      "- amount - total income\n"
                      "- withholdingTax - cost of the income (already paid tax)\n"
-                     "- tax - estimated tax to pay (based on amount only)")
+                     "- tax - estimated tax to regulate in home country\n"
+                     "- taxWithDeductions - estimated tax to be paid")
         ctn.dataframe(taxes_on_dividends.sum(axis=0))
         ctn.dataframe(taxes_on_dividends)
         ctn.divider()
 
         taxes_on_trades = tax_data(get_trade_table(), TradeTransforms(tax_rate), yr)
         ctn.markdown("### from trades\n"
-                     "- change - profits or loses")
+                     "- change - value difference from buy to sell price\n"
+                     "- cost - investment value\n"
+                     "- earnings - investment return")
         ctn.dataframe(taxes_on_trades.sum(axis=0))
         ctn.dataframe(taxes_on_trades)
         ctn.divider()

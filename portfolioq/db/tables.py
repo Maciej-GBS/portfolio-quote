@@ -66,15 +66,15 @@ class DividendsTable(Table):
         super().create()
         with self.conn as c:
             c.get_cursor().execute(f"""
-            CREATE TABLE IF NOT EXISTS {self.NAME} (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                ticker TEXT NOT NULL,
-                payoutDate DATE NOT NULL,
-                amount REAL NOT NULL,
-                marketValue REAL NOT NULL,
-                withholdingTax REAL NOT NULL,
-                currency VARCHAR NOT NULL
-            )""")
+CREATE TABLE IF NOT EXISTS {self.NAME} (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticker TEXT NOT NULL,
+    payoutDate DATE NOT NULL,
+    amount REAL NOT NULL,
+    marketValue REAL NOT NULL,
+    withholdingTax REAL NOT NULL,
+    currency VARCHAR NOT NULL
+)""")
 
     def all(self) -> list[Dividend]:
         super().all()
@@ -93,9 +93,9 @@ class DividendsTable(Table):
         value_keys = ",".join(f":{k}" for k in s_keys)
         with self.conn as c:
             c.get_cursor().executemany(f"""
-            INSERT INTO {self.NAME} ({columns})
-            VALUES ({value_keys})
-            """, values)
+INSERT INTO {self.NAME} ({columns})
+VALUES ({value_keys})
+""", values)
 
 
 class TradeTable(Table):
@@ -111,16 +111,16 @@ class TradeTable(Table):
         super().create()
         with self.conn as c:
             c.get_cursor().execute(f"""
-            CREATE TABLE IF NOT EXISTS {self.NAME} (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                ticker TEXT NOT NULL,
-                buyDate DATE NOT NULL,
-                sellDate DATE NOT NULL,
-                buyValue REAL NOT NULL,
-                sellValue REAL NOT NULL,
-                currency VARCHAR NOT NULL,
-                quantity REAL
-            )""")
+CREATE TABLE IF NOT EXISTS {self.NAME} (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticker TEXT NOT NULL,
+    buyDate DATE NOT NULL,
+    sellDate DATE NOT NULL,
+    buyValue REAL NOT NULL,
+    sellValue REAL NOT NULL,
+    currency VARCHAR NOT NULL,
+    quantity REAL
+)""")
 
     def all(self) -> list[Trade]:
         super().all()
@@ -139,6 +139,6 @@ class TradeTable(Table):
         value_keys = ",".join(f":{k}" for k in s_keys)
         with self.conn as c:
             c.get_cursor().executemany(f"""
-            INSERT INTO {self.NAME} ({columns})
-            VALUES ({value_keys})
-            """, values)
+INSERT INTO {self.NAME} ({columns})
+VALUES ({value_keys})
+""", values)

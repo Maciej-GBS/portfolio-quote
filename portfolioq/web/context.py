@@ -11,6 +11,7 @@ def reset_db():
         tab.create()
     with get_trade_table() as tab:
         tab.create()
+    st.cache_data.clear()
 
 def get_dividends_table() -> DividendsTable:
     return DividendsTable()

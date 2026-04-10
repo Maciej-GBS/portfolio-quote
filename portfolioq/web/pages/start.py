@@ -10,14 +10,14 @@ def load_nbp_data(files: list):
     converter = get_currency_converter()
     for f in files:
         converter.load_nbp_table(f)
+        st.info(f"Loaded successfully: {f.name}")
+    st.cache_data.clear()
 
 @st.fragment
 def nbp_data_frontend():
     st.markdown("### Currency rates")
     data = st.file_uploader("Official NBP csv tables", accept_multiple_files=True, type="csv")
     load_nbp_data(data)
-    for f in data:
-        st.info(f"Loaded successfully: {f.name}")
 
 def load_ibkr_data(statements: list):
     if len(statements) == 0:
@@ -29,14 +29,14 @@ def load_ibkr_data(statements: list):
         for stmt in statements:
             dividend_stream = qmw.IbkrDividendStream(StringIO(stmt.getvalue().decode('utf-8')))
             tab.insert(list(dividend_stream))
+            st.info(f"Loaded successfully: {stmt.name}")
+    st.cache_data.clear()
 
 @st.fragment
 def ibkr_data_frontend():
     st.markdown("### IBKR Client")
     data = st.file_uploader("Account activity statements in csv", accept_multiple_files=True, type="csv")
     load_ibkr_data(data)
-    for f in data:
-        st.info(f"Loaded successfully: {f.name}")
 
 def generate_mock_data(num_dividends: int, num_trades: int):
     if num_dividends == 0 and num_trades == 0:
@@ -47,6 +47,7 @@ def generate_mock_data(num_dividends: int, num_trades: int):
         tab.insert([next(dividend_stream) for _ in range(num_dividends)])
     with get_trade_table() as tab:
         tab.insert([next(trade_stream) for _ in range(num_trades)])
+    st.cache_data.clear()
 
 @st.fragment
 def mock_data_frontend():
@@ -56,12 +57,10 @@ def mock_data_frontend():
 
     if st.button("Generate mock data!"):
         generate_mock_data(n_dividends, n_trades)
-        st.cache_data.clear()
         st.info("Data loaded!")
 
     if st.button("Reset DB"):
         reset_db()
-        st.cache_data.clear()
         st.info("Database cleared!")
 
 def frontend():
