@@ -12,28 +12,28 @@ calculate tax.
 import pandas as pd
 from contextlib import contextmanager
 from datetime import datetime
+from io import StringIO
 from portfolioq.db import Dividend, Trade
 
 CODE_OPEN = "O"
 CODE_CLOSE = "C"
 
 @contextmanager
-def to_iterable(file):
-    if hasattr(file, 'readline'):
-        yield file
-    elif isinstance(file, list):
+def to_streamable(file):
+    if hasattr(file, 'seek'):
         yield file
     else:
         f = open(file, 'r')
         yield f
         f.close()
 
-def line_filter(file, filter_func):
+def line_filter(file, filter_func, use_early_stop=True):
     early_stop_active = False
-    with to_iterable(file) as f:
+    with to_streamable(file) as f:
+        f.seek(0)
         for line in f:
             if filter_func(line):
-                early_stop_active = True
+                early_stop_active = use_early_stop
                 yield line
             elif early_stop_active:
                 return
@@ -73,10 +73,9 @@ class IbkrDividendStream:
     def __init__(self, file):
         criteria_dividends = lambda l: l.startswith("Dividends")
         criteria_tax = lambda l: l.startswith("Withholding Tax")
-        lines = list(line_filter(file, lambda l: criteria_dividends(l) or criteria_tax(l)))
         self.dividends = lines_to_dataframe(
-            line_filter(lines, criteria_dividends)).sort_values("Date", ascending=True)
-        self.tax = lines_to_dataframe(line_filter(lines, criteria_tax))
+            line_filter(file, criteria_dividends)).sort_values("Date", ascending=True)
+        self.tax = lines_to_dataframe(line_filter(file, criteria_tax))
         self._drop_nondata_rows()
         self._infer_symbol_column()
         self._positive_tax_sign()
@@ -114,8 +113,8 @@ class IbkrDividendStream:
             ticker=row["Symbol"],
             payoutDate=datetime.strptime(row["Date"], r"%Y-%m-%d"),
             amount=row["Amount"],
-            # TODO replace 1e9 placeholder
-            marketValue=1e9,
+            # TODO replace 1e6 placeholder
+            marketValue=1e6,
             # withholdingTax can be used to avoid double tax. However, there is a limit of 15%
             # which can be applied. This limit applies for U.S. and many others even when
             # a higher tax had actually been paid at source
@@ -129,7 +128,8 @@ class IbkrTradeStream:
             l.startswith("Trades,Header"),
             "Comm/Fee" in l
         ])
-        self._criteria = lambda l: l.startswith("Trades,Data,Order")
+        self._criteria_prefetch = lambda l: l.startswith("Trades,")
+        self._criteria = lambda l: l.startswith("Trades,Data,Order,Stocks")
         self.files = []
 
         for f in (files or []):
@@ -143,15 +143,17 @@ class IbkrTradeStream:
         if len(self.files) == 0:
             self.data_ = iter(self.files)
             return self
+        prefetch = [StringIO("".join(line_filter(f, self._criteria_prefetch))) for f in self.files]
         trade_history = combined_iterator(
-            line_filter(self.files[0], self._criteria_header),
-            *(line_filter(f, self._criteria) for f in self.files)
+            line_filter(prefetch[0], self._criteria_header),
+            *(line_filter(sio, self._criteria, use_early_stop=False) for sio in prefetch)
         )
         self.data_ = iter(lines_to_dataframe(trade_history)
                           .sort_values("Date/Time", ascending=True)
                           .iterrows())
         self.open_trades_ = {}
         self.pending_ = []
+        self.errors_ = []
         return self
 
     def __next__(self) -> Trade:
@@ -194,7 +196,8 @@ class IbkrTradeStream:
                 ]
                 return self.pending_.pop(0)
             else:
-                print(f"Warning: discarding Trade, not found in active : {row.to_dict()}")
+                self.errors_.append(row.to_dict())
+                print(f"Warning: discarding Trade, not found in active")
         # Trade is active, cannot produce until closed
         return next(self)
 
@@ -204,6 +207,7 @@ class IbkrTradeStream:
         if active_trades is None:
             return None
         closed = []
+        quantity = abs(quantity)
         while len(active_trades) > 0 and quantity > 1e-5:
             t = active_trades.pop(0)
             quantity -= t.quantity
