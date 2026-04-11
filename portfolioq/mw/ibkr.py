@@ -170,7 +170,7 @@ class IbkrTradeStream:
                 currency=row["Currency"],
                 buyDate=row["Date/Time"],
                 sellDate=datetime.min,
-                buyValue=-(row["Proceeds"] + row["Comm/Fee"]),
+                buyValue=-(row["Proceeds"]), # + row["Comm/Fee"]),
                 sellValue=0.0,
                 quantity=row["Quantity"]
             )
@@ -189,7 +189,7 @@ class IbkrTradeStream:
                         buyDate=t.buyDate,
                         sellDate=row["Date/Time"],
                         buyValue=t.buyValue,
-                        sellValue=row["Proceeds"] + row["Comm/Fee"],
+                        sellValue=row["Proceeds"], # + row["Comm/Fee"],
                         quantity=t.quantity
                     )
                     for t in closed_trades
